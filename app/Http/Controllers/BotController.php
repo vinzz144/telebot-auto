@@ -59,8 +59,10 @@ class BotController extends Controller
                 if(!$check){
                     //echo 'sess';
                     //$this->pre($check);
-                    $this->save_to_db($row);
-                    $new_data++;
+                    if(isset($row['message']['entities'])){
+                        $this->save_to_db($row);
+                        $new_data++;
+                    }
                 }
             }
 
@@ -165,7 +167,8 @@ class BotController extends Controller
                 break;
 
             case '':
-                $message_to_send='tulis pesan dong';
+                // $message_to_send='tulis pesan dong';
+                $message_to_send='';
                 break;
 
             case '/?':
@@ -173,7 +176,8 @@ class BotController extends Controller
                 break;
 
             default:
-                $message_to_send = 'Terimakasih, pesan telah kami terima.';
+                // $message_to_send = 'Terimakasih, pesan telah kami terima.';
+                $message_to_send='';
                 break;
         }
 
@@ -190,18 +194,17 @@ class BotController extends Controller
 
         $message_to_send=$this->generate_message($message,$username,$user_id);
 
-        $api_method='sendMessage';
-        $params=array(
-            'chat_id'=>$data->chat_id,'text'=>$message_to_send,
-            'reply_to_message_id' => $message_id
-        );
-        $response=$this->call_bot($api_method,$curl_type='post',$params);
-
-        // $message_model=new MessageModel();
-        // $message_model->find($data->id);
-        // $message_model->replied=1;
-        // $message_model->save();
-        MessageModel::find($data->id)->update(['replied'=>1,'response'=>$response]);
+        if($message_to_send!=''){
+            $api_method='sendMessage';
+            $params=array(
+                'chat_id'=>$data->chat_id,'text'=>$message_to_send,
+                'reply_to_message_id' => $message_id
+            );
+            $response=$this->call_bot($api_method,$curl_type='post',$params);
+        }else{
+            $response='';
+        }
+        MessageModel::find($data->id)->update(['replied'=>1,'response_data'=>$response]);
     }
 
     public function auto_responder(){
