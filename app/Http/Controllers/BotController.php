@@ -202,7 +202,7 @@ class BotController extends Controller
             );
             $response=$this->call_bot($api_method,$curl_type='post',$params);
         }else{
-            $response='';
+            $response='xxx';
         }
         MessageModel::find($data->id)->update(['replied'=>1,'response_data'=>$response]);
     }
