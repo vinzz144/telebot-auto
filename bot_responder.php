@@ -11,6 +11,6 @@ while ( $stop!=true) {
     $exec = curl_exec ($chInit);
     echo "run at ".date('y-m-d H:i:s')."\n";//.": response--> ".$exec."\n";
     curl_close ($chInit);
-    sleep(5);
+    sleep(9);
 }
 ?>

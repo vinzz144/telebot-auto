@@ -195,13 +195,13 @@ class BotController extends Controller
             'chat_id'=>$data->chat_id,'text'=>$message_to_send,
             'reply_to_message_id' => $message_id
         );
-        $this->call_bot($api_method,$curl_type='post',$params);
+        $response=$this->call_bot($api_method,$curl_type='post',$params);
 
         // $message_model=new MessageModel();
         // $message_model->find($data->id);
         // $message_model->replied=1;
         // $message_model->save();
-        MessageModel::find($data->id)->update(['replied'=>1]);
+        MessageModel::find($data->id)->update(['replied'=>1,'response'=>$response]);
     }
 
     public function auto_responder(){
