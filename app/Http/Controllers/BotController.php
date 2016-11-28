@@ -90,7 +90,7 @@ class BotController extends Controller
         $message_model->chat_id=isset($data['message']['chat']['id'])?$data['message']['chat']['id']:'';
         $message_model->message_id=isset($data['message']['message_id'])?$data['message']['message_id']:'';
         $message_model->chat_type=isset($data['message']['chat']['type'])?$data['message']['chat']['type']:'private';
-        $message_model->response_data='';
+        $message_model->response_data='first';
         $message_model->save();
     }
 
