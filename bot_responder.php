@@ -1,8 +1,8 @@
 <?php
 $url='http://localhost/bot321/public/bot/auto-responder';
-date_default_timezone_get('Asia/Jakarta');
+date_default_timezone_set('Asia/Jakarta');
 $stop=false;
-while ( $stop!=true) {
+while ($stop!=true) {
 
     // echo $reply;
     $chInit = curl_init();

@@ -2,82 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\MessageModel;
+use App\Services\TelegramAPIService;
 
 class BotController extends Controller
 {
+    private $telegramAPIService;
+    private $message_model;
 
-    private function call_bot($api_method,$curl_type='get',$params=[]){
-
-        $curl_type=strtolower($curl_type);
-
-        $new_url=env('TELEGRAM_API_URL').env('BOT_TOKEN').'/'.$api_method;
-
-        $ch = curl_init($new_url);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        if($curl_type=='post'){
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, ($params));
-        }
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        $result = curl_exec($ch);
-        curl_close($ch);
-        return $result;
+    function __construct(){
+        $this->telegramAPIService=new TelegramAPIService();
+        $this->message_model=new MessageModel();
     }
 
     public function get_me(){
-        $api_method='getMe';
-        $response=$this->call_bot($api_method);
-        echo $response;
+        $this->pre($this->telegramAPIService->get_me());
     }
 
-
-    function pre($var){
+    private function pre($var){
         echo "<pre>";
         print_r($var);
         echo "</pre>";
     }
 
     public function get_updates(){
-        // echo '===========================';echo "<br>";
-        // echo '== receiving new updates ==';echo "<br>";
-        // echo '===========================';echo "<br>";
-
-        $api_method='getUpdates';
-        $response=$this->call_bot($api_method);
-        $new_response=json_decode($response,true);
-        // $this->pre($new_response);
+        $response=$this->telegramAPIService->get_updates();
+        $new_response=$response;
         $new_data=0;
 
         if($new_response){
             foreach($new_response['result'] as $row){
 
                 $check=MessageModel::where('update_id',$row['update_id'])->first();
-                //echo $row['update_id'].'<br>';
                 if(!$check){
-                    //echo 'sess';
-                    //$this->pre($check);
                     if(isset($row['message']['entities'])){
                         $this->save_to_db($row);
                         $new_data++;
                     }
                 }
             }
-
             return $new_data;
-            // echo '======= update saved =======';echo "<br>";
-            // echo '============================';
         }
         else{
             return 0;
-            // echo '====== no new updates ======';echo "<br>";
-            // echo '============================';
         }
     }
 
-    //
     private function save_to_db($data){
         $message_model=new MessageModel();
         $message_model->update_id=$data['update_id'];
@@ -90,7 +60,7 @@ class BotController extends Controller
         $message_model->chat_id=isset($data['message']['chat']['id'])?$data['message']['chat']['id']:'';
         $message_model->message_id=isset($data['message']['message_id'])?$data['message']['message_id']:'';
         $message_model->chat_type=isset($data['message']['chat']['type'])?$data['message']['chat']['type']:'private';
-        $message_model->response_data='first';
+        $message_model->response_data='';
         $message_model->save();
     }
 
@@ -100,17 +70,13 @@ class BotController extends Controller
 
         if($unreplied_list){
             foreach($unreplied_list as $row){
-                // $this->pre($row->id);
-                // exit();
                 $this->do_reply($row);
             }
         }
     }
 
-
     private function generate_message($message,$username,$user_id){
-        $message_to_send='';
-        date_default_timezone_get('Asia/Jakarta');
+        date_default_timezone_set('Asia/Jakarta');
         $bot_username=env('BOT_USERNAME');
 
         switch($message){
@@ -166,17 +132,11 @@ class BotController extends Controller
                 $message_to_send='ayo kita mulai ngobrol';
                 break;
 
-            case '':
-                // $message_to_send='tulis pesan dong';
-                $message_to_send='';
-                break;
-
             case '/?':
                 $message_to_send='mang ngapa?';
                 break;
 
             default:
-                // $message_to_send = 'Terimakasih, pesan telah kami terima.';
                 $message_to_send='';
                 break;
         }
@@ -184,27 +144,22 @@ class BotController extends Controller
         return $message_to_send;
     }
 
-
     private function do_reply($data){
         $username=$data->first_name.' '.$data->last_name;
         $user_id=$data->from_id;
-        $text=$data->text;
         $message_id=$data->message_id;
         $message=$data->text;
 
         $message_to_send=$this->generate_message($message,$username,$user_id);
 
         if($message_to_send!=''){
-            $api_method='sendMessage';
-            $params=array(
-                'chat_id'=>$data->chat_id,'text'=>$message_to_send,
-                'reply_to_message_id' => $message_id
-            );
-            $response=$this->call_bot($api_method,$curl_type='post',$params);
+            $response=$this->telegramAPIService->send_message($data['chat_id'],$message_to_send,$message_id);
+            $response=json_encode($response);
         }else{
-            $response='xxx';
+            $response='no message';
         }
-        MessageModel::find($data->id)->update(['replied'=>1,'response_data'=>$response]);
+
+        $this->message_model->find($data->id)->update(['response_data'=>$response,'replied'=>1]);
     }
 
     public function auto_responder(){
